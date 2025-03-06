@@ -1,4 +1,5 @@
 "use client";
+import Snake from "@/lib/snake.class";
 import { useEffect, useRef, useState } from "react";
 
 export default function Home() {
@@ -6,11 +7,16 @@ export default function Home() {
   const CanvasSize = 400;
   const CellSize = 10;
 
-  const gameSpeed = 150;
+  const gameSpeed = 400;
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const clicked = useRef(false);
 
-  const snakeRef = useRef([{ x: 200, y: 200 }]);
-  const directionRef = useRef({ dx: 0, dy: -10 });
+  //   const snakeRef = useRef([{ x: 200, y: 200 }]);
+  // snakeInstance.current
+  const { current: snake } = useRef(
+    new Snake({ x: 200, y: 200 }, { dx: 0, dy: -10 }, CellSize, CanvasSize)
+  );
+  //   const directionRef = useRef({ dx: 0, dy: -10 });
   const foodRef = useRef({ x: 0, y: 0 });
 
   const gameIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -24,6 +30,12 @@ export default function Home() {
         generateFood(ctx);
 
         gameIntervalRef.current = setInterval(() => {
+          setInterval(() => {
+            clearCanvas(ctx);
+            snake.rateMove();
+            drawSnake(ctx);
+            drawFood(ctx);
+          }, gameSpeed / CellSize);
           gameLoop(ctx); // 게임 시작
         }, gameSpeed);
 
@@ -33,6 +45,7 @@ export default function Home() {
 
         return () => {
           clearInterval(gameIntervalRef.current as NodeJS.Timeout);
+
           window.removeEventListener("keydown", handleKeyDown);
         };
       }
@@ -41,82 +54,79 @@ export default function Home() {
 
   const gameLoop = (ctx: CanvasRenderingContext2D) => {
     setTimeout(() => {
+      clicked.current = false;
       clearCanvas(ctx);
+      snake.move();
+
       drawSnake(ctx);
+
+      const head = snake.getSegments()[0];
+      if (head.x === foodRef.current.x && head.y === foodRef.current.y) {
+        snake.grow();
+        setScore((prev) => prev + 10);
+        generateFood(ctx);
+      }
+
       drawFood(ctx);
-      moveSnake(ctx);
     }, 0);
 
-    if (checkCollision()) {
+    if (snake.checkCollision()) {
       clearInterval(gameIntervalRef.current as NodeJS.Timeout);
       alert("게임 오버");
     }
     // 다음 프레임 요청
   };
   const changeDirection = (e: KeyboardEvent) => {
-    const { dx, dy } = directionRef.current;
+    if (clicked.current) return;
+    const { dx, dy } = snake.getDirection();
     switch (e.key) {
       case "ArrowUp":
       case "w":
-        if (dy == 0) directionRef.current = { dx: 0, dy: -CellSize };
+        clicked.current = true;
+        if (dy == 0) {
+          snake.setDirection({ dx: 0, dy: -CellSize });
+        }
         break;
       case "ArrowDown":
       case "s":
-        if (dy == 0) directionRef.current = { dx: 0, dy: CellSize };
+        clicked.current = true;
+        if (dy == 0) {
+          snake.setDirection({ dx: 0, dy: CellSize });
+        }
         break;
       case "ArrowLeft":
       case "a":
-        if (dx == 0) directionRef.current = { dx: -CellSize, dy: 0 };
+        clicked.current = true;
+        if (dx == 0) {
+          snake.setDirection({ dx: -CellSize, dy: 0 });
+        }
         break;
       case "ArrowRight":
       case "d":
-        if (dx == 0) directionRef.current = { dx: CellSize, dy: 0 };
+        clicked.current = true;
+        if (dx == 0) {
+          snake.setDirection({ dx: CellSize, dy: 0 });
+        }
         break;
       default:
         break;
     }
   };
-  const checkCollision = () => {
-    const snake = snakeRef.current;
-    const head = snake[0];
 
-    if (
-      head.x < 0 ||
-      head.x >= CanvasSize ||
-      head.y < 0 ||
-      head.y >= CanvasSize
-    ) {
-      return true;
-    }
-
-    // 머리와 몸 충돌검사
-    for (let i = 1; i < snake.length; i++) {
-      if (head.x === snake[i].x && head.y === snake[i].y) return true;
-    }
-    return false;
-  };
-  const moveSnake = (ctx: CanvasRenderingContext2D) => {
-    const snake = snakeRef.current;
-    const head = { ...snake[0] };
-    const { dx, dy } = directionRef.current;
-    head.x += dx;
-    head.y += dy;
-    snake.unshift(head);
-    if (head.x === foodRef.current.x && head.y === foodRef.current.y) {
-      setScore((prev) => prev + 10);
-      generateFood(ctx);
-    } else {
-      snake.pop();
-    }
-  };
   const drawSnake = (ctx: CanvasRenderingContext2D) => {
-    ctx.fillStyle = "lightblue";
-    ctx.strokeStyle = "darkblue";
-    snakeRef.current.forEach((segment) => {
+    snake.getSegments().forEach((segment, index) => {
+      if (index === 0) {
+        ctx.fillStyle = "#ff6000";
+        ctx.strokeStyle = "#ff6000";
+      } else {
+        ctx.fillStyle = "lightblue";
+        ctx.strokeStyle = "lightblue";
+      }
       ctx.fillRect(segment.x, segment.y, CellSize, CellSize);
       ctx.strokeRect(segment.x, segment.y, CellSize, CellSize);
     });
   };
+
   const generateFood = (ctx: CanvasRenderingContext2D) => {
     const maxCells = CanvasSize / CellSize;
     const foodX = Math.floor(Math.random() * maxCells) * CellSize;

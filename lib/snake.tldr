@@ -1,0 +1,148 @@
+{
+	"tldrawFileFormatVersion": 1,
+	"schema": {
+		"schemaVersion": 2,
+		"sequences": {
+			"com.tldraw.store": 4,
+			"com.tldraw.asset": 1,
+			"com.tldraw.camera": 1,
+			"com.tldraw.document": 2,
+			"com.tldraw.instance": 25,
+			"com.tldraw.instance_page_state": 5,
+			"com.tldraw.page": 1,
+			"com.tldraw.instance_presence": 6,
+			"com.tldraw.pointer": 1,
+			"com.tldraw.shape": 4,
+			"com.tldraw.asset.bookmark": 2,
+			"com.tldraw.asset.image": 5,
+			"com.tldraw.asset.video": 5,
+			"com.tldraw.shape.group": 0,
+			"com.tldraw.shape.text": 2,
+			"com.tldraw.shape.bookmark": 2,
+			"com.tldraw.shape.draw": 2,
+			"com.tldraw.shape.geo": 9,
+			"com.tldraw.shape.note": 8,
+			"com.tldraw.shape.line": 5,
+			"com.tldraw.shape.frame": 0,
+			"com.tldraw.shape.arrow": 5,
+			"com.tldraw.shape.highlight": 1,
+			"com.tldraw.shape.embed": 4,
+			"com.tldraw.shape.image": 4,
+			"com.tldraw.shape.video": 2,
+			"com.tldraw.binding.arrow": 0
+		}
+	},
+	"records": [
+		{
+			"gridSize": 10,
+			"name": "",
+			"meta": {},
+			"id": "document:document",
+			"typeName": "document"
+		},
+		{
+			"meta": {},
+			"id": "page:page",
+			"name": "Page 1",
+			"index": "a1",
+			"typeName": "page"
+		},
+		{
+			"id": "pointer:pointer",
+			"typeName": "pointer",
+			"x": 473.9583068291348,
+			"y": 283.61978159348246,
+			"lastActivityTimestamp": 1740996102262,
+			"meta": {}
+		},
+		{
+			"followingUserId": null,
+			"opacityForNextShape": 1,
+			"stylesForNextShape": {},
+			"brush": null,
+			"scribbles": [],
+			"cursor": {
+				"type": "default",
+				"rotation": 0
+			},
+			"isFocusMode": false,
+			"exportBackground": true,
+			"isDebugMode": false,
+			"isToolLocked": false,
+			"screenBounds": {
+				"x": 0,
+				"y": 0,
+				"w": 953.3333129882812,
+				"h": 595
+			},
+			"insets": [
+				false,
+				false,
+				true,
+				false
+			],
+			"zoomBrush": null,
+			"isGridMode": false,
+			"isPenMode": false,
+			"chatMessage": "",
+			"isChatting": false,
+			"highlightedUserIds": [],
+			"isFocused": true,
+			"devicePixelRatio": 1.2000000476837158,
+			"isCoarsePointer": false,
+			"isHoveringCanvas": true,
+			"openMenus": [],
+			"isChangingStyle": false,
+			"isReadonly": false,
+			"meta": {},
+			"duplicateProps": null,
+			"id": "instance:instance",
+			"currentPageId": "page:page",
+			"typeName": "instance"
+		},
+		{
+			"editingShapeId": null,
+			"croppingShapeId": null,
+			"selectedShapeIds": [],
+			"hoveredShapeId": null,
+			"erasingShapeIds": [],
+			"hintingShapeIds": [],
+			"focusedGroupId": null,
+			"meta": {},
+			"id": "instance_page_state:page:page",
+			"pageId": "page:page",
+			"typeName": "instance_page_state"
+		},
+		{
+			"x": -154.99999384085353,
+			"y": 2.4999999006581817,
+			"z": 1,
+			"meta": {},
+			"id": "camera:page:page",
+			"typeName": "camera"
+		},
+		{
+			"x": 262.890625,
+			"y": 335.76820945739746,
+			"rotation": 0,
+			"isLocked": false,
+			"opacity": 1,
+			"meta": {},
+			"id": "shape:dUfJmTuCozFvkl2C1PX9l",
+			"type": "text",
+			"props": {
+				"color": "black",
+				"size": "m",
+				"w": 908.1484375,
+				"text": "export default class Snake {\n  private segments: { x: number; y: number }[];\n  private direction: { dx: number; dy: number };\n  private cellSize: number;\n  private canvasSize: number;\n\n  constructor(\n    initialPosition: { x: number; y: number },\n    initialDirection: { dx: number; dy: number },\n    cellSize: number,\n    canvasSize: number\n  ) {\n    this.segments = [initialPosition];\n    this.direction = initialDirection;\n    this.cellSize = cellSize;\n    this.canvasSize = canvasSize;\n  }\n\n  getSegments() {\n    return this.segments;\n  }\n\n  setDirection(newDirection: { dx: number; dy: number }) {\n    // 현재 방향과 반대 방향으로는 이동할 수 없도록 제한\n    if (\n      (this.direction.dx === 0 && newDirection.dx !== 0) ||\n      (this.direction.dy === 0 && newDirection.dy !== 0)\n    ) {\n      this.direction = newDirection;\n    }\n  }\n\n  move() {\n    const head = { ...this.segments[0] };\n    head.x += this.direction.dx;\n    head.y += this.direction.dy;\n\n    // 벽을 통과하여 반대편으로 나오도록 처리\n    head.x = (head.x + this.canvasSize) % this.canvasSize;\n    head.y = (head.y + this.canvasSize) % this.canvasSize;\n\n    this.segments.unshift(head);\n    this.segments.pop();\n  }\n\n  grow() {\n    const tail = this.segments[this.segments.length - 1];\n    this.segments.push({ ...tail });\n  }\n\n  checkCollision() {\n    const head = this.segments[0];\n    // 머리가 몸통과 충돌했는지 확인\n    for (let i = 1; i < this.segments.length; i++) {\n      if (head.x === this.segments[i].x && head.y === this.segments[i].y) {\n        return true;\n      }\n    }\n    return false;\n  }\n}",
+				"font": "draw",
+				"textAlign": "start",
+				"autoSize": true,
+				"scale": 1
+			},
+			"parentId": "page:page",
+			"index": "a1",
+			"typeName": "shape"
+		}
+	]
+}
