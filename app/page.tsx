@@ -1,157 +1,151 @@
 "use client";
+
+import NextSnake from "@/lib/next-snake";
+import { Score } from "@/lib/next-snake/score";
 import { useEffect, useRef, useState } from "react";
 
-export default function Home() {
-  const [score, setScore] = useState(0);
-  const CanvasSize = 400;
-  const CellSize = 10;
-
-  const gameSpeed = 150;
+// React 컴포넌트
+export default function SnakeNewPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const gameRef = useRef<NextSnake | null>(null);
+  const [score, setScore] = useState(0);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [isFirst, setIsFirst] = useState(true);
 
-  const snakeRef = useRef([{ x: 200, y: 200 }]);
-  const directionRef = useRef({ dx: 0, dy: -10 });
-  const foodRef = useRef({ x: 0, y: 0 });
-
-  const gameIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
+  //   const globalScore = Score.getInstanc();
+  // 게임 초기화 및 시작
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (canvas) {
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        // 먹이생성
-        generateFood(ctx);
+    if (!canvas) return;
 
-        gameIntervalRef.current = setInterval(() => {
-          gameLoop(ctx); // 게임 시작
-        }, gameSpeed);
+    // 캔버스 크기 설정
+    canvas.width = 600;
+    canvas.height = 400;
 
-        //키보드제어
-        const handleKeyDown = (e: KeyboardEvent) => changeDirection(e);
-        window.addEventListener("keydown", handleKeyDown);
+    gameRef.current = new NextSnake(canvas);
 
-        return () => {
-          clearInterval(gameIntervalRef.current as NodeJS.Timeout);
-          window.removeEventListener("keydown", handleKeyDown);
-        };
+    // 게임 자동 시작 (첫 렌더링 시)
+    // if (gameRef.current) {
+    //   gameRef.current.start();
+    //   setGameStarted(true);
+    // }
+
+    // 키보드 이벤트 처리
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!gameRef.current) return;
+
+      // 키 입력 막기 (방향키가 스크롤을 유발하는 것 방지)
+      if (
+        [
+          "ArrowUp",
+          "ArrowDown",
+          "ArrowLeft",
+          "ArrowRight",
+          "w",
+          "a",
+          "s",
+          "d",
+          " ",
+        ].includes(e.key)
+      ) {
+        e.preventDefault();
       }
-    }
+
+      switch (e.key) {
+        case "ArrowUp":
+        case "w":
+        case "W":
+          gameRef.current.changeDirection("UP");
+          break;
+        case "ArrowDown":
+        case "s":
+        case "S":
+          gameRef.current.changeDirection("DOWN");
+          break;
+        case "ArrowLeft":
+        case "a":
+        case "A":
+          gameRef.current.changeDirection("LEFT");
+          break;
+        case "ArrowRight":
+        case "d":
+        case "D":
+          gameRef.current.changeDirection("RIGHT");
+          break;
+        case " ":
+          // 스페이스바로 시작/재시작
+          if (gameRef.current.isOver()) {
+            gameRef.current.start();
+          }
+          break;
+      }
+    };
+
+    // 키보드 리스너 등록
+    window.addEventListener("keydown", handleKeyDown);
+
+    // 점수 업데이트를 위한 인터벌
+    const scoreInterval = setInterval(() => {
+      if (gameRef.current) {
+        if (gameRef.current.isOver()) {
+          setGameStarted(false);
+        }
+        setScore(Score.getInstanc().getScore());
+      }
+    }, 100);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      clearInterval(scoreInterval);
+    };
   }, []);
 
-  const gameLoop = (ctx: CanvasRenderingContext2D) => {
-    setTimeout(() => {
-      clearCanvas(ctx);
-      drawSnake(ctx);
-      drawFood(ctx);
-      moveSnake(ctx);
-    }, 0);
-
-    if (checkCollision()) {
-      clearInterval(gameIntervalRef.current as NodeJS.Timeout);
-      alert("게임 오버");
-    }
-    // 다음 프레임 요청
-  };
-  const changeDirection = (e: KeyboardEvent) => {
-    const { dx, dy } = directionRef.current;
-    switch (e.key) {
-      case "ArrowUp":
-      case "w":
-        if (dy == 0) directionRef.current = { dx: 0, dy: -CellSize };
-        break;
-      case "ArrowDown":
-      case "s":
-        if (dy == 0) directionRef.current = { dx: 0, dy: CellSize };
-        break;
-      case "ArrowLeft":
-      case "a":
-        if (dx == 0) directionRef.current = { dx: -CellSize, dy: 0 };
-        break;
-      case "ArrowRight":
-      case "d":
-        if (dx == 0) directionRef.current = { dx: CellSize, dy: 0 };
-        break;
-      default:
-        break;
+  // 게임 시작 버튼 클릭 핸들러
+  const handleStartClick = () => {
+    if (gameRef.current) {
+      gameRef.current.start();
+      setGameStarted(true);
+      if (isFirst) setIsFirst(false);
     }
   };
-  const checkCollision = () => {
-    const snake = snakeRef.current;
-    const head = snake[0];
 
-    if (
-      head.x < 0 ||
-      head.x >= CanvasSize ||
-      head.y < 0 ||
-      head.y >= CanvasSize
-    ) {
-      return true;
-    }
-
-    // 머리와 몸 충돌검사
-    for (let i = 1; i < snake.length; i++) {
-      if (head.x === snake[i].x && head.y === snake[i].y) return true;
-    }
-    return false;
-  };
-  const moveSnake = (ctx: CanvasRenderingContext2D) => {
-    const snake = snakeRef.current;
-    const head = { ...snake[0] };
-    const { dx, dy } = directionRef.current;
-    head.x += dx;
-    head.y += dy;
-    snake.unshift(head);
-    if (head.x === foodRef.current.x && head.y === foodRef.current.y) {
-      setScore((prev) => prev + 10);
-      generateFood(ctx);
-    } else {
-      snake.pop();
-    }
-  };
-  const drawSnake = (ctx: CanvasRenderingContext2D) => {
-    ctx.fillStyle = "lightblue";
-    ctx.strokeStyle = "darkblue";
-    snakeRef.current.forEach((segment) => {
-      ctx.fillRect(segment.x, segment.y, CellSize, CellSize);
-      ctx.strokeRect(segment.x, segment.y, CellSize, CellSize);
-    });
-  };
-  const generateFood = (ctx: CanvasRenderingContext2D) => {
-    const maxCells = CanvasSize / CellSize;
-    const foodX = Math.floor(Math.random() * maxCells) * CellSize;
-    const foodY = Math.floor(Math.random() * maxCells) * CellSize;
-    foodRef.current = { x: foodX, y: foodY };
-
-    ctx.fillStyle = "lightgreen";
-    ctx.strokeStyle = "darkgreen";
-    ctx.fillRect(foodRef.current.x, foodRef.current.y, CellSize, CellSize);
-    ctx.strokeRect(foodRef.current.x, foodRef.current.y, CellSize, CellSize);
-  };
-
-  const drawFood = (ctx: CanvasRenderingContext2D) => {
-    ctx.fillStyle = "lightgreen";
-    ctx.strokeStyle = "darkgreen";
-    ctx.fillRect(foodRef.current.x, foodRef.current.y, CellSize, CellSize);
-    ctx.strokeRect(foodRef.current.x, foodRef.current.y, CellSize, CellSize);
-  };
-
-  const clearCanvas = (ctx: CanvasRenderingContext2D) => {
-    ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, CanvasSize, CanvasSize);
-    ctx.strokeStyle = "black";
-    ctx.strokeRect(0, 0, CanvasSize, CanvasSize);
-  };
   return (
-    <div className="w-full h-screen flex flex-col gap-8 justify-center items-center ">
-      <h1 className="text-4xl font-extrabold">Nextjs 스네이크 게임</h1>
-      <h2 className='"text-4xl font-extrabold'>{score}</h2>
-      <canvas
-        ref={canvasRef}
-        className="bg-white"
-        width={CanvasSize}
-        height={CanvasSize}
-      />
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
+      <h1 className="text-4xl font-bold mb-4 text-indigo-700">Snake Game</h1>
+
+      <div className="mb-4 flex items-center">
+        <div className="bg-indigo-600 text-white py-2 px-4 rounded-lg shadow-md">
+          Score: {score}
+        </div>
+
+        {!gameStarted && (
+          <button
+            onClick={handleStartClick}
+            className="ml-4 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-200"
+          >
+            {isFirst ? "Start Game" : "Restart Game"}
+          </button>
+        )}
+      </div>
+
+      <div className="border-4 border-indigo-600 rounded-lg shadow-xl overflow-hidden">
+        <canvas ref={canvasRef} className="bg-white" />
+      </div>
+
+      <div className="mt-4 text-gray-700">
+        <h2 className="text-xl font-semibold mb-2">Controls:</h2>
+        <ul className="list-disc list-inside space-y-1">
+          <li>
+            Use <span className="font-medium">Arrow Keys</span> or{" "}
+            <span className="font-medium">W A S D</span> to move
+          </li>
+          <li>
+            Press <span className="font-medium">Space</span> to restart when
+            game is over
+          </li>
+          <li>Or use the on-screen controls above</li>
+        </ul>
+      </div>
     </div>
   );
 }
